@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Candle Option</title>
+  <script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
+  <style>
+    body { background: #0b0f1a; color: #fff; font-family: Arial, sans-serif; margin: 0; text-align: center; }
+    nav button { background: #111; border: none; color: #fff; padding: 10px; cursor: pointer; }
+    .panel { max-width: 400px; margin: 20px auto; background: #111827; padding: 20px; border-radius: 8px; }
+    input, select { width: 90%; padding: 10px; margin: 10px 0; border-radius: 6px; border: none; }
+    button { padding: 10px 20px; border: none; background: #4caf50; color: white; border-radius: 6px; cursor: pointer; }
+    .tab { display: none; padding: 10px; }
+    .tab.active { display: block; }
+    #chart { height: 300px; margin: auto; }
+    #live-price { font-weight: bold; padding: 5px; }
+  </style>
+</head>
+<body>
+  <div id="login-panel" class="panel">
+    <h2>Login</h2>
+    <input type="text" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Password">
+    <button onclick="loginUser()">Login</button>
+  </div>
+  <div id="app" style="display:none">
+    <nav>
+      <button onclick="showTab('trade')">Trade</button>
+      <button onclick="renderProfile()">Profile</button>
+      <button onclick="renderWithdraw()">Withdraw</button>
+      <button onclick="showAdmin()">Admin</button>
+    </nav>
+    <div id="content">
+      <div class="tab active" id="trade"></div>
+      <div class="tab" id="profile"></div>
+      <div class="tab" id="withdraw"></div>
+      <div class="tab" id="admin"></div>
+    </div>
+  </div>
+
+  <script>
+    let balance = 0, demo = false, trades = [], withdrawals = JSON.parse(localStorage.getItem('withdrawals')||'[]');
+    let chart, series, chartType = 'candlestick', symbol = 'gold', price = 100, time = Math.floor(Date.now()/1000);
+
+    function loginUser() {
+      const e = email.value.trim(), p = password.value.trim();
+      if (!e || !p) return alert('Enter credentials');
+      localStorage.setItem('user', JSON.stringify({email:e}));
+      loginPanel.style.display = 'none';
+      app.style.display = 'block';
+      showTab('trade');
+    }
+
+    function showTab(tab) {
+      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+      document.getElementById(tab).classList.add('active');
+      if(tab==='trade') renderTrade();
+    }
+
+    function renderTrade() {
+      const syms = ['Gold','Diamond','Bronze','Silver'];
+      const sel = syms.map(s=>`<option value="${s.toLowerCase()}">${s}</option>`).join('');
+      const logo = {'gold':'🥇','diamond':'💎','bronze':'🥉','silver':'🥈'}[symbol];
+      document.getElementById('trade').innerHTML = `
+        <div style="font-size:24px">${logo} ${symbol.toUpperCase()}</div>
+        <select id="symbol" onchange="symbol=this.value;showTab('trade')">${sel}</select>
+        <div><button onclick="setType('candlestick')">📊 Candle</button>
+        <button onclick="setType('line')">📈 Line</button></div>
+        <div id="live-price"></div>
+        <div id="chart"></div>
+        <input type="number" id="amt" placeholder="Amount $" />
+        <input type="number" id="dur" value="30" /> seconds
+        <div><button onclick="placeTrade('buy')">Buy</button>
+        <button onclick="placeTrade('sell')">Sell</button></div>
+        <p>Balance: $<span id="bal">${balance.toFixed(2)}</span> <label><input type="checkbox" id="demo" onchange="toggleDemo()">Demo Mode</label></p>`
+      drawChart();
+    }
+
+    function setType(t){chartType=t;showTab('trade');}
+    function toggleDemo(){demo=demoToggle.checked; if(demo) balance=1000; balanceDisplay.innerText=balance.toFixed(2);}
+
+    function drawChart(){
+      const c=document.getElementById('chart');c.innerHTML='';
+      chart=LightweightCharts.createChart(c,{width:c.clientWidth,height:300,layout:{backgroundColor:'#0b0f1a',textColor:'#fff'}});
+      series = chartType==='line'
+        ? chart.addLineSeries({color:getColor(symbol)})
+        : chart.addCandlestickSeries({upColor:getColor(symbol),downColor:'#f44336',wickUpColor:getColor(symbol),wickDownColor:'#f44336'});
+      function gen(){
+        const v={'gold':1.2,'diamond':0.8,'bronze':0.5,'silver':0.9}[symbol]||1;
+        const o=price,cl=o+(Math.random()-.5)*2*v,hi=Math.max(o,cl)+.5*v,lo=Math.min(o,cl)-.5*v;
+        time+=60;price=cl; return {time,o,hi,lo,close:cl};
+      }
+      let data=[];for(let i=0;i<40;i++)data.push(gen());
+      series.setData(data);
+      setInterval(()=>{
+        const c1=gen();series.update(c1);
+        const lp=livePrice;const old=+lp.getAttribute('data')||c1.close;
+        lp.style.color=c1.close>old?'#0f0':c1.close<old?'#f00':'#fff';
+        lp.innerText=`Price: $${c1.close.toFixed(2)}`;lp.setAttribute('data',c1.close);
+        updateMarkers();
+      },2000);
+    }
+
+    function getColor(s){
+      return {'gold':'#FFD700','diamond':'#00FFFF','bronze':'#CD7F32','silver':'#C0C0C0'}[s]||'#4caf50';
+    }
+
+    function updateMarkers(){
+      if(chartType!=='candlestick')return;
+      const m=trades.map(t=>({time:t.time,position:'aboveBar',color:t.type==='buy'?'#0f0':'#f00',shape:t.type==='buy'?'arrowUp':'arrowDown',text:`${t.type}@${t.price.toFixed(2)}`}));
+      series.setMarkers(m);
+    }
+
+    function placeTrade(type){
+      const amt=+amtInput.value, dur=+durInput.value;
+      if(!demo&&balance<=0)return alert('Deposit required');
+      if(!demo&&balance<amt)return alert('Insufficient balance');
+      if(!demo)balance-=amt;
+      balSpan.innerText=balance.toFixed(2);
+      trades.push({time, type, price, result:null, date:new Date().toLocaleString()});
+      updateMarkers();
+      setTimeout(()=>{
+        const win=Math.random()>.5;
+        if(!demo&&win)balance+=amt*1.4;
+        trades[trades.length-1].result=win?'WIN':'LOSS';
+        balSpan.innerText=balance.toFixed(2);
+        alert(win?`🎉 Won $${(amt*0.4).toFixed(2)}`:`❌ Lost $${amt.toFixed(2)}`);
+      },dur*1000);
+    }
+
+    function renderWithdraw(){
+      contentDiv.innerHTML='<div class="tab active" id="withdraw"><div class="panel"><h3>Withdraw</h3><p>Balance: $'+balance.toFixed(2)+'</p><input id="wA" placeholder="Wallet"><input type="number" id="wAmt" placeholder="Amount"><button onclick="submitWithdraw()">Submit</button></div></div>';
+    }
+
+    function submitWithdraw(){
+      const w=wA.value, a=+wAmt.value;
+      if(!w||!a||a<=0)return alert('Invalid');
+      if(a>balance)return alert('Insufficient');
+      balance-=a;balSpan.innerText=balance.toFixed(2);
+      withdrawals.push({date:new Date().toLocaleString(),amt:a,wallet:w,status:'Pending'});
+      localStorage.setItem('withdrawals',JSON.stringify(withdrawals));
+      alert('✅ Withdrawal submitted');
+      renderWithdraw();
+    }
+
+    function showAdmin(){
+      let list=withdrawals.map(x=>`<li>${x.date} - $${x.amt} to ${x.wallet} [${x.status}]</li>`).join('');
+      contentDiv.innerHTML='<div class="tab active" id="admin"><div class="panel"><h3>Admin</h3><ul style="text-align:left;">'+(list||'No transactions')+'</ul><button onclick="showTab(\'trade\')">Back</button></div></div>';
+    }
+
+    function renderProfile(){
+      const hist=trades.map(t=>`<li>${t.date} - ${t.type} $${t.price.toFixed(2)} → ${t.result}</li>`).join('');
+      const wins=trades.filter(t=>t.result==='WIN').length, total=trades.length;
+      const profit=trades.reduce((s,t)=>s+(t.result==='WIN'?t.price*0.4:t.result==='LOSS'? -t.price:0),0);
+      contentDiv.innerHTML='<div class="panel"><h3>Profile</h3><p>Mode:'+ (demo?'Demo':'Real')+'</p><h4>History</h4><ul>'+hist+'</ul><h4>Badges</h4><ul><li>'+(wins>=10?'🏅':'—')+'</li><li>'+(wins>=50?'🎓':'—')+'</li><li>'+(total>=20?'🎯':'—')+'</li><li>'+(profit>=50?'💰':'—')+'</li></ul><h4>Stats</h4><p>Total:'+total+'</p><p>Wins:'+wins+'</p><p>Loss:'+ (total-wins)+'</p><p>Profit:$'+profit.toFixed(2)+'</p><button onclick="alert(\'Share soon\')">Share</button><p style="font-size:12px;color:#ccc;">Endorsed by <strong>CHUKWU EBUBECHI</strong></p></div>';
+    }
+
+    // Element shortcuts
+    const livePrice=document.getElementById('live-price'), pos=getComputedStyle(document.body).position;
+    const amtInput=document.getElementById('amt'), durInput=document.getElementById('dur'),
+          balSpan=document.getElementById('bal'), demoToggle=document.getElementById('demo'),
+          contentDiv=document.getElementById('content');
+
+    // Initialize
+    if(localStorage.getItem('user')){ loginPanel.style.display='none'; app.style.display='block'; showTab('trade'); }
+  </script>
+</body>
+</html>
