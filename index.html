@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOT - NFT Marketplace</title>
+    <title>Candle Option - NFT Marketplace</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
@@ -17,6 +17,8 @@
             --pure-white: #FFFFFF;
             --off-white: #F8F9FA;
             --dark-bg: #121212;
+            --candle-red: #FF6B6B;
+            --candle-green: #51CF66;
         }
         
         body {
@@ -141,7 +143,7 @@
         }
         
         .profit-badge {
-            background-color: #28a745;
+            background-color: var(--candle-green);
             color: white;
             padding: 3px 8px;
             border-radius: 10px;
@@ -150,7 +152,7 @@
         
         .disclaimer {
             background-color: #f8d7da;
-            border-left: 4px solid #dc3545;
+            border-left: 4px solid var(--candle-red);
             padding: 15px;
             margin: 20px 0;
             font-size: 0.9rem;
@@ -181,7 +183,21 @@
         
         .withdraw-fee {
             font-size: 0.8rem;
-            color: #dc3545;
+            color: var(--candle-red);
+        }
+        
+        .candle-logo {
+            width: 40px;
+            height: 40px;
+            margin-right: 10px;
+        }
+        
+        .candle-up {
+            color: var(--candle-green);
+        }
+        
+        .candle-down {
+            color: var(--candle-red);
         }
     </style>
 </head>
@@ -189,7 +205,10 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
-            <a class="navbar-brand" href="#">LOT</a>
+            <a class="navbar-brand" href="#">
+                <img src="https://via.placeholder.com/40x40/D4AF37/121212?text=CO" alt="Candle Option Logo" class="candle-logo rounded-circle">
+                Candle Option
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -211,7 +230,7 @@
                 <div class="col-md-6">
                     <div class="card mb-4">
                         <div class="card-header">
-                            Wallet Balance
+                            <i class="fas fa-wallet"></i> Wallet Balance
                         </div>
                         <div class="card-body text-center">
                             <div class="wallet-balance">₦<span id="walletBalance">0</span></div>
@@ -221,7 +240,7 @@
                     
                     <div class="card mb-4">
                         <div class="card-header">
-                            Account Status
+                            <i class="fas fa-user-shield"></i> Account Status
                         </div>
                         <div class="card-body">
                             <div class="mb-3">
@@ -244,7 +263,7 @@
                 <div class="col-md-6">
                     <div class="card mb-4">
                         <div class="card-header">
-                            Referral Program
+                            <i class="fas fa-user-friends"></i> Referral Program
                         </div>
                         <div class="card-body">
                             <p>Share your referral code and earn when your referrals verify their accounts.</p>
@@ -255,7 +274,7 @@
                     
                     <div class="card">
                         <div class="card-header">
-                            Deposit Funds
+                            <i class="fas fa-money-bill-wave"></i> Deposit Funds
                         </div>
                         <div class="card-body">
                             <p>Send money to this account to deposit funds:</p>
@@ -271,14 +290,14 @@
             </div>
             
             <div class="disclaimer">
-                <h5>Disclaimer</h5>
-                <p>NFT purchases are subject to market risks. LOT is not responsible for any losses incurred. Minimum withdrawal amount is ₦8000 with a ₦1000 fee. Profits are added automatically after 24 hours of purchase.</p>
+                <h5><i class="fas fa-exclamation-triangle"></i> Disclaimer</h5>
+                <p>NFT purchases are subject to market risks. Candle Option is not responsible for any losses incurred. Minimum withdrawal amount is ₦8000 with a ₦1000 fee. Profits are added automatically after 24 hours of purchase.</p>
             </div>
         </div>
 
         <!-- Marketplace Page -->
         <div id="marketplacePage" class="page">
-            <h2 class="mt-4 gold-text">NFT Marketplace</h2>
+            <h2 class="mt-4 gold-text"><i class="fas fa-store"></i> NFT Marketplace</h2>
             <p class="mb-4">Purchase NFTs and earn profits after 24 hours</p>
             
             <div class="row" id="nftContainer">
@@ -287,7 +306,7 @@
             
             <div class="card mt-4">
                 <div class="card-header">
-                    My NFTs
+                    <i class="fas fa-coins"></i> My NFTs
                 </div>
                 <div class="card-body">
                     <table class="table" id="myNftsTable">
@@ -309,7 +328,7 @@
 
         <!-- Transactions Page -->
         <div id="transactionsPage" class="page">
-            <h2 class="mt-4 gold-text">Transaction History</h2>
+            <h2 class="mt-4 gold-text"><i class="fas fa-history"></i> Transaction History</h2>
             
             <div class="card mt-4">
                 <div class="card-body">
@@ -331,7 +350,7 @@
 
         <!-- Withdraw Page -->
         <div id="withdrawPage" class="page">
-            <h2 class="mt-4 gold-text">Withdraw Funds</h2>
+            <h2 class="mt-4 gold-text"><i class="fas fa-money-bill-alt"></i> Withdraw Funds</h2>
             
             <div class="card mt-4">
                 <div class="card-header">
@@ -374,7 +393,7 @@
 
         <!-- Admin Dashboard (hidden for regular users) -->
         <div id="adminPage" class="page">
-            <h2 class="mt-4 gold-text">Admin Dashboard</h2>
+            <h2 class="mt-4 gold-text"><i class="fas fa-user-cog"></i> Admin Dashboard</h2>
             
             <div class="card mt-4">
                 <div class="card-header">
@@ -486,7 +505,7 @@
                 </div>
                 <div class="modal-body">
                     <p>To complete your verification, you need to pay a ₦0.80 verification fee.</p>
-                    <p>Send ₦0.80 to:</p>
+                    <p>Send $0.80 to:</p>
                     <div class="alert alert-info">
                         <strong>Opay Account:</strong><br>
                         8038684515<br>
